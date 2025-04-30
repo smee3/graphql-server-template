@@ -1,27 +1,41 @@
 # GraphQL Server テンプレート
 
-このプロジェクトは、Apollo Serverを使用したシンプルなGraphQLサーバーのテンプレートです。Postエンティティを管理するためのAPIを提供しています。
+このプロジェクトは、Apollo ServerとPrismaを使用したGraphQLサーバーのテンプレートです。PostとUserエンティティを管理するためのAPIを提供しています。
 
 ## 機能
 
-- **クエリ**: Postの取得（タイトルまたは著者でフィルタリング可能）
-- **ミューテーション**: Postの作成、更新、削除
+- **クエリ**:
+  - Postの取得（タイトルまたは著者でフィルタリング可能）
+  - Userの取得（名前またはメールアドレスでフィルタリング可能）
+- **ミューテーション**:
+  - Postの作成、更新、削除
+  - Userの登録、ログイン
 - **サブスクリプション**: Postの変更をリアルタイムで監視
+- **認証**: JWTを使用したユーザー認証
 
 ## 技術スタック
 
 - [Apollo Server](https://www.apollographql.com/docs/apollo-server/) - GraphQLサーバー
 - [GraphQL](https://graphql.org/) - APIクエリ言語
 - [Node.js](https://nodejs.org/) - JavaScriptランタイム
+- [Prisma](https://www.prisma.io/) - Node.js/TypeScript用ORM
+- [PostgreSQL](https://www.postgresql.org/) - リレーショナルデータベース
+- [bcryptjs](https://github.com/dcodeIO/bcrypt.js) - パスワードハッシュ化
+- [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) - JWT認証
 
 ## プロジェクト構造
 
 ```
 graphql-server/
-├── db.js                # インメモリデータベース
+├── db.js                # インメモリデータベース（レガシー）
 ├── index.js             # サーバー起動ファイル
 ├── package.json         # プロジェクト設定
 ├── schema.js            # GraphQLスキーマ定義
+├── create_tables.sql    # データベーステーブル作成SQL
+├── prisma/              # Prisma設定
+│   └── schema.prisma    # Prismaスキーマ
+├── generated/           # Prisma生成ファイル
+│   └── prisma/          # Prismaクライアント
 └── resolver/            # リゾルバー
     ├── Mutation.js      # ミューテーションリゾルバー
     ├── Query.js         # クエリリゾルバー
@@ -34,6 +48,7 @@ graphql-server/
 
 - Node.js (v12以上)
 - npm または yarn
+- PostgreSQL
 
 ### インストール
 
@@ -46,11 +61,22 @@ cd graphql-server
 npm install
 # または
 yarn install
+
+# 環境変数の設定
+# .envファイルを作成し、以下の内容を追加
+# DATABASE_URL="postgresql://username:password@localhost:5432/graphql_server?schema=public"
+
+# データベースのセットアップ
+npx prisma db push
+# または
+psql -U username -d graphql_server -f create_tables.sql
 ```
 
 ### 起動方法
 
 ```bash
+npm start
+# または
 node index.js
 ```
 
@@ -77,6 +103,24 @@ query {
     id
     title
     author
+  }
+}
+
+# すべてのUserを取得
+query {
+  users {
+    id
+    name
+    email
+  }
+}
+
+# 名前またはメールアドレスで検索
+query {
+  users(query: "test") {
+    id
+    name
+    email
   }
 }
 ```
@@ -119,6 +163,37 @@ mutation {
     author
   }
 }
+
+# ユーザー登録
+mutation {
+  createUser(data: {
+    name: "テストユーザー"
+    email: "test@example.com"
+    password: "password123"
+  }) {
+    token
+    user {
+      id
+      name
+      email
+    }
+  }
+}
+
+# ログイン
+mutation {
+  login(data: {
+    email: "test@example.com"
+    password: "password123"
+  }) {
+    token
+    user {
+      id
+      name
+      email
+    }
+  }
+}
 ```
 
 ### サブスクリプション例
@@ -141,9 +216,10 @@ subscription {
 
 このテンプレートは、以下のような方法で拡張できます：
 
-1. **データベース連携**: Prismaなどを使用して、実際のデータベースと連携
-2. **認証機能**: JWT認証などを追加
-3. **追加エンティティ**: 新しいエンティティとそれに関連するリゾルバーを追加
+1. **リレーション追加**: PostとUserの間にリレーションを追加（例：投稿者情報）
+2. **権限管理**: ロールベースのアクセス制御を実装
+3. **ファイルアップロード**: 画像などのファイルアップロード機能を追加
+4. **テスト**: 単体テストや統合テストの追加
 
 ## ライセンス
 

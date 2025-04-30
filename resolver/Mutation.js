@@ -1,3 +1,6 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
 const Mutation = {
   createPost(parent, args, { db, pubsub }, info) {
     const postNumTotal = String(db.posts.length + 1)
@@ -50,6 +53,46 @@ const Mutation = {
       },
     })
     return post
+  },
+
+  async createUser(parent, args, { prisma }, info) {
+    const { data: { name, email, password } } = args;
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+    if (existingUser) {
+      throw new Error(`ユーザーは既に存在します。メールアドレス: ${email}`);
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: bcrypt.hashSync(password, 10),
+      }
+    });
+
+    return {
+      token: jwt.sign(user.id, 'supersecret'),
+      user
+    };
+  },
+
+  async login(parent, args, { prisma }, info) {
+    const { data: { email, password } } = args;
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+    if (!user) throw new Error('User not found');
+    const isMatch = bcrypt.compareSync(password, user.password);
+    if (!isMatch) throw new Error('Invalid credentials');
+    return {
+      token: jwt.sign(user.id, 'supersecret'),
+      user
+    };
   },
 }
 

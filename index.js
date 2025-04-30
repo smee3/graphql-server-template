@@ -5,6 +5,8 @@ const Mutation = require('./resolver/Mutation');
 const Subscription = require('./resolver/Subscription')
 const typeDefs = require('./schema');
 
+const { PrismaClient } = require('./generated/prisma');
+const prisma = new PrismaClient();
 const pubsub = new PubSub()
 const server = new ApolloServer({
   typeDefs,
@@ -14,6 +16,7 @@ const server = new ApolloServer({
     Subscription,
   },
   context: {
+    prisma,
     db,
     pubsub,
   }

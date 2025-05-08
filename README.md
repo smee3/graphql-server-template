@@ -1,17 +1,19 @@
 # GraphQL Server テンプレート
 
-このプロジェクトは、Apollo ServerとPrismaを使用したGraphQLサーバーのテンプレートです。PostとUserエンティティを管理するためのAPIを提供しています。
+このプロジェクトは、Apollo ServerとPrismaを使用したGraphQLサーバーのテンプレートです。PostとUserエンティティを管理するためのAPIを提供しています。ユーザー認証とリレーショナルデータモデルを実装しています。
 
 ## 機能
 
 - **クエリ**:
   - Postの取得（タイトルまたは著者でフィルタリング可能）
   - Userの取得（名前またはメールアドレスでフィルタリング可能）
+  - リレーションを通じたデータ取得（ユーザーの投稿、投稿のユーザー）
 - **ミューテーション**:
-  - Postの作成、更新、削除
+  - Postの作成、更新、削除（認証必須）
   - Userの登録、ログイン
 - **サブスクリプション**: Postの変更をリアルタイムで監視
-- **認証**: JWTを使用したユーザー認証
+- **認証**: JWTを使用したユーザー認証（環境変数による秘密鍵管理）
+- **リレーション**: UserとPostの間に1対多のリレーションを実装
 
 ## 技術スタック
 
@@ -27,11 +29,12 @@
 
 ```
 graphql-server/
-├── db.js                # インメモリデータベース（レガシー）
+├── .env                 # 環境変数設定ファイル
 ├── index.js             # サーバー起動ファイル
 ├── package.json         # プロジェクト設定
 ├── schema.js            # GraphQLスキーマ定義
-├── create_tables.sql    # データベーステーブル作成SQL
+├── options/             # ユーティリティ関数
+│   └── getUserId.js     # ユーザー認証ユーティリティ
 ├── prisma/              # Prisma設定
 │   └── schema.prisma    # Prismaスキーマ
 ├── generated/           # Prisma生成ファイル
@@ -39,7 +42,9 @@ graphql-server/
 └── resolver/            # リゾルバー
     ├── Mutation.js      # ミューテーションリゾルバー
     ├── Query.js         # クエリリゾルバー
-    └── Subscription.js  # サブスクリプションリゾルバー
+    ├── Subscription.js  # サブスクリプションリゾルバー
+    ├── User.js          # Userタイプリゾルバー
+    └── Post.js          # Postタイプリゾルバー
 ```
 
 ## セットアップ
@@ -65,11 +70,10 @@ yarn install
 # 環境変数の設定
 # .envファイルを作成し、以下の内容を追加
 # DATABASE_URL="postgresql://username:password@localhost:5432/graphql_server?schema=public"
+# JWT_SECRET="your-secret-key-for-jwt"
 
 # データベースのセットアップ
 npx prisma db push
-# または
-psql -U username -d graphql_server -f create_tables.sql
 ```
 
 ### 起動方法
@@ -94,6 +98,12 @@ query {
     id
     title
     author
+    postedUser {
+      id
+      name
+    }
+    createdAt
+    updatedAt
   }
 }
 
@@ -112,6 +122,12 @@ query {
     id
     name
     email
+    posts {
+      id
+      title
+    }
+    createdAt
+    updatedAt
   }
 }
 
@@ -128,7 +144,7 @@ query {
 ### ミューテーション例
 
 ```graphql
-# 新しいPostを作成
+# 新しいPostを作成（認証が必要）
 mutation {
   createPost(data: {
     title: "走れメロス"
@@ -137,8 +153,19 @@ mutation {
     id
     title
     author
+    postedUser {
+      id
+      name
+    }
+    createdAt
+    updatedAt
   }
 }
+
+# 認証ヘッダーの例
+# {
+#   "Authorization": "Bearer YOUR_JWT_TOKEN"
+# }
 
 # Postを更新
 mutation {
@@ -216,7 +243,7 @@ subscription {
 
 このテンプレートは、以下のような方法で拡張できます：
 
-1. **リレーション追加**: PostとUserの間にリレーションを追加（例：投稿者情報）
+1. **リレーションの活用**: 既存のPostとUserの間のリレーションを活用した機能拡張
 2. **権限管理**: ロールベースのアクセス制御を実装
 3. **ファイルアップロード**: 画像などのファイルアップロード機能を追加
 4. **テスト**: 単体テストや統合テストの追加

@@ -24,6 +24,7 @@ input CreatePostInput {
 }
 
 input UpdatePostInput {
+  userId: ID
   title: String
   author: String
 }
@@ -32,6 +33,9 @@ type Post {
   id: ID!
   title: String!
   author: String!
+  postedUser: User!
+  createdAt: String!
+  updatedAt: String!
 }
 
 enum MutationType {
@@ -66,6 +70,9 @@ type User {
   name: String!
   email: String
   password: String!
+  posts: [Post!]!
+  createdAt: String!
+  updatedAt: String!
 }
 `
 

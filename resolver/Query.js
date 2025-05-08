@@ -18,15 +18,22 @@ const Query = {
     }
   },
 
-  posts(parent, args, { db, pubsub }, info) {
-    if (!args.query) {
-      return db.posts
-    } else {
-      return db.posts.filter((post) => {
-        const isTitleMatch = post.title.toLowerCase().includes(args.query.toLowerCase())
-        const isAuthorMatch = post.author.toLowerCase().includes(args.query.toLowerCase())
-        return isTitleMatch || isAuthorMatch
-      })
+  posts(parent, args, { prisma }, info) {
+    try  {
+      if (!args.query) {
+        return prisma.post.findMany();
+      } else {
+        return prisma.post.findMany({
+          where: {
+            OR: [
+              { title: { contains: args.query, mode: 'insensitive' } },
+              { author: { contains: args.query, mode: 'insensitive' } }
+            ]
+          }
+        });
+      }
+    } catch (error) {
+      throw error;
     }
   }
 }

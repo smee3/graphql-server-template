@@ -1,8 +1,10 @@
+require('dotenv').config();
 const { ApolloServer, PubSub } = require('apollo-server');
-const db = require('./db');
 const Query = require('./resolver/Query');
 const Mutation = require('./resolver/Mutation');
 const Subscription = require('./resolver/Subscription')
+const User = require('./resolver/User');
+const Post = require('./resolver/Post');
 const typeDefs = require('./schema');
 
 const { PrismaClient } = require('./generated/prisma');
@@ -14,11 +16,15 @@ const server = new ApolloServer({
     Query,
     Mutation,
     Subscription,
+    User,
+    Post
   },
-  context: {
-    prisma,
-    db,
-    pubsub,
+  context: ({ req }) => {
+    return {
+      prisma,
+      pubsub,
+      request: { req }
+    };
   }
 })
 

@@ -1,30 +1,41 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { getUserId } = require('../options/getUserId');
 
 const Mutation = {
-  createPost(parent, args, { db, pubsub }, info) {
-    const postNumTotal = String(db.posts.length + 1)
-    const post = {
-      id: postNumTotal,
-      ...args.data,
-    }
+  async createPost(parent, args, { pubsub, prisma, request }, info) {
+    const userId = getUserId(request)
+    const post = await prisma.post.create({
+      data: {
+        ...args.data,
+        postedUser: {
+          connect: {
+            id: userId,
+          },
+        },
+      },
+    })
 
-    db.posts.push(post)
     pubsub.publish('post', {
       post: {
         mutation: 'CREATED',
         data: post,
       },
     })
+
     return post
   },
 
-  updatePost(parent, args, { db, pubsub }, info) {
-    const { id, data } = args
-    const post = db.posts.find((post) => post.id === id)
+  async updatePost(parent, args, { pubsub, prisma, request }, info) {
+    const { id: idString, data } = args
+    const id = parseInt(idString, 10)
+    const post = await prisma.post.findUnique({
+      where: { id },
+    })
     if (!post) {
       throw new Error('Post not found')
     }
+
     if (typeof data.title === 'string' && typeof data.author === 'string') {
       post.title = data.title
       post.author = data.author
@@ -35,24 +46,35 @@ const Mutation = {
         },
       })
     }
-    return post
+
+    return prisma.post.update({
+      where: { id },
+      data: {
+        ...data,
+      },
+    })
   },
 
-  deletePost(parent, args, { db, pubsub }, info) {
-    const post = db.posts.find((post) => post.id === args.id)
-    const postIndex = db.posts.findIndex((post) => post.id == args.id)
-
-    if (postIndex === -1) {
+  async deletePost(parent, args, { pubsub, prisma, request }, info) {
+    const { id: idString } = args
+    const id = parseInt(idString, 10)
+    const post = await prisma.post.findUnique({
+      where: { id },
+    })
+    if (!post) {
       throw new Error('Post not found')
     }
-    db.posts.splice(postIndex, 1)
+
     pubsub.publish('post', {
       post: {
         mutation: 'DELETED',
         data: post,
       },
     })
-    return post
+
+    return prisma.post.delete({
+      where: { id },
+    })
   },
 
   async createUser(parent, args, { prisma }, info) {
@@ -74,7 +96,7 @@ const Mutation = {
     });
 
     return {
-      token: jwt.sign(user.id, 'supersecret'),
+      token: jwt.sign(user.id, process.env.JWT_SECRET),
       user
     };
   },
@@ -90,7 +112,7 @@ const Mutation = {
     const isMatch = bcrypt.compareSync(password, user.password);
     if (!isMatch) throw new Error('Invalid credentials');
     return {
-      token: jwt.sign(user.id, 'supersecret'),
+      token: jwt.sign(user.id, process.env.JWT_SECRET),
       user
     };
   },

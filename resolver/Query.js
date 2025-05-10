@@ -1,6 +1,12 @@
+const { getUserId } = require('../options/getUserId');
 const Query = {
-  users: async (root, args, { prisma }, info) => {
+  users: async (root, args, { prisma, request }, info) => {
     try {
+      const userId = getUserId(request, false);
+      if (!userId) {
+        throw new Error('Authentication required.');
+      }
+
       if (!args.query) {
         return prisma.user.findMany();
       } else {
@@ -18,8 +24,13 @@ const Query = {
     }
   },
 
-  posts(parent, args, { prisma }, info) {
+  posts(parent, args, { prisma, request }, info) {
     try  {
+      const userId = getUserId(request, false);
+      if (!userId) {
+        throw new Error('Authentication required.');
+      }
+
       if (!args.query) {
         return prisma.post.findMany();
       } else {

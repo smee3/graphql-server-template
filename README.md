@@ -144,9 +144,9 @@ npm run dev:reset
 開発環境では、以下のシードデータが自動的に投入されます：
 
 - ユーザー:
-  - 夏目漱石 (soseki@example.com)
-  - 太宰治 (dazai@example.com)
-  - パスワードはどちらも `password123`
+  - paul (paul@sample.com)
+  - john (john@sample.com)
+  - パスワードはどちらも `hogebarfoo`
 
 - ポスト:
   - 夏目漱石: 「吾輩は猫である」「坊っちゃん」

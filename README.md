@@ -53,9 +53,11 @@ graphql-server/
 
 - Node.js (v12以上)
 - npm または yarn
-- PostgreSQL
+- PostgreSQL または Docker
 
 ### インストール
+
+#### 方法1: PostgreSQLを直接使用する場合
 
 ```bash
 # リポジトリのクローン
@@ -73,15 +75,89 @@ yarn install
 # JWT_SECRET="your-secret-key-for-jwt"
 
 # データベースのセットアップ
-npx prisma db push
+npx prisma migrate dev --name init
+```
+
+#### 方法2: Dockerを使用する場合
+
+```bash
+# リポジトリのクローン
+git clone https://github.com/yourusername/graphql-server.git
+cd graphql-server
+
+# 依存関係のインストール
+npm install
+# または
+yarn install
+
+# 環境変数の設定
+# .envファイルを作成し、以下の内容を追加
+# DATABASE_URL="postgresql://postgres:postgres@localhost:5432/graphql?schema=public"
+# JWT_SECRET="your-secret-key-for-jwt"
+
+# Dockerでデータベースを起動し、マイグレーションを実行
+npm run docker:up
+npm run prisma:migrate
 ```
 
 ### 起動方法
+
+#### 方法1: 通常の起動
 
 ```bash
 npm start
 # または
 node index.js
+```
+
+#### 方法2: Docker環境での起動（開発モード）
+
+```bash
+# Dockerでデータベースを起動し、スキーマを適用し、シードデータを投入してアプリケーションを実行
+npm run dev
+```
+
+#### マイグレーション履歴を作成する場合
+
+チーム開発でマイグレーション履歴を共有したい場合は、以下のコマンドを使用できます：
+
+```bash
+# マイグレーション履歴を作成し、シードデータを投入してアプリケーションを実行
+npm run dev:migrate
+```
+
+**注意**: マイグレーションフォルダ名にはタイムスタンプが付与されるため、Git管理する場合は注意が必要です。デフォルトでは`.gitignore`に`/prisma/migrations/`を追加してGit管理から除外しています。
+
+#### マイグレーションの問題が発生した場合（データベースリセット）
+
+マイグレーションの問題（ドリフト検出など）が発生した場合は、以下のコマンドでデータベースをリセットできます：
+
+```bash
+# データベースをリセットし、スキーマを適用し、シードデータを投入してアプリケーションを実行
+npm run dev:reset
+```
+
+**注意**: このコマンドを実行すると、データベース内のすべてのデータが失われます。
+
+#### シードデータについて
+
+開発環境では、以下のシードデータが自動的に投入されます：
+
+- ユーザー:
+  - 夏目漱石 (soseki@example.com)
+  - 太宰治 (dazai@example.com)
+  - パスワードはどちらも `password123`
+
+- ポスト:
+  - 夏目漱石: 「吾輩は猫である」「坊っちゃん」
+  - 太宰治: 「人間失格」「走れメロス」
+
+シードデータは `prisma/seed.js` ファイルで定義されており、必要に応じてカスタマイズできます。
+
+#### Dockerコンテナの停止
+
+```bash
+npm run docker:down
 ```
 
 サーバーが起動すると、以下のURLでGraphQLプレイグラウンドにアクセスできます：

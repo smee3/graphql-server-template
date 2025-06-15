@@ -31,3 +31,6 @@ yarn-error.log*
 # OS関連
 .DS_Store
 Thumbs.db
+
+# Prisma
+/prisma/migrations/
